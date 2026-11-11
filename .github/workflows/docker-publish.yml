@@ -21,6 +21,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Debug GitHub OIDC context
+        run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Workflow: ${{ github.workflow_ref }}"
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -81,7 +88,8 @@ jobs:
           aws ecs update-service \
             --cluster "$ECS_CLUSTER" \
             --service "$ECS_SERVICE" \
-            --task-definition "${{ steps.task-def.outputs.task_definition_arn }}"
+            --task-definition "${{ steps.task-def.outputs.task_definition_arn }}" \
+            --force-new-deployment
 
           aws ecs wait services-stable \
             --cluster "$ECS_CLUSTER" \
