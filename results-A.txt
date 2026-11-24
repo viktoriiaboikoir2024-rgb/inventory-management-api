@@ -1,0 +1,17 @@
+﻿k6 run, прогін A (кеш вимкнений, 80 VUs, 10 хв)
+(підсумок перенесено з виведення терміналу)
+
+THRESHOLDS
+  http_req_duration  x 'p(95)<1000' p(95)=8.78s
+  http_req_failed    ok 'rate<0.01' rate=0.00%
+
+TOTAL RESULTS
+  checks_total: 2114, succeeded: 100.00%, failed: 0.00%
+  http_req_duration: avg=3.35s med=2.49s p(90)=7.99s p(95)=8.78s p(99)=12.7s max=30.9s
+  http_req_failed: 0.00% (0 out of 2114)
+  http_reqs: 2114 (1.819859/s)
+  iteration_duration: avg=25.81s med=14.9s p(90)=1m6s p(95)=1m10s p(99)=1m21s max=1m24s
+  iterations: 179 complete, 80 interrupted
+  vus: min=1 max=80
+  data_received: 153 MB, data_sent: 308 kB
+  (тест тривав 19m21s замість 10m через повільні відповіді)
