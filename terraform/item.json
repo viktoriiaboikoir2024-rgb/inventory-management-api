@@ -1,0 +1,7 @@
+{
+    "price":  1200,
+    "description":  "AWS deployment test",
+    "name":  "Test Laptop",
+    "quantity":  5,
+    "category":  "Electronics"
+}

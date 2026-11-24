@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends, status, Query
 from sqlalchemy.orm import Session
 
+from app.cache import cache_get, cache_set, cache_delete
 from app.database import engine, Base, get_db
 from app import models, schemas
 
@@ -32,12 +33,36 @@ def health():
 
 
 @app.get("/items", response_model=list[schemas.ItemResponse])
-def get_items(db: Session = Depends(get_db)):
-    return db.query(models.Item).all()
+def get_items(
+    limit: int = Query(100, ge=1, le=1000),
+    category: str | None = None,
+    db: Session = Depends(get_db),
+):
+    key = f"items:list:{category or 'all'}:{limit}"
+    cached = cache_get(key)
+    if cached is not None:
+        return cached
+
+    query = db.query(models.Item)
+    if category:
+        query = query.filter(models.Item.category == category)
+    items = query.order_by(models.Item.id).limit(limit).all()
+
+    data = [
+        schemas.ItemResponse.model_validate(i, from_attributes=True).model_dump(mode="json")
+        for i in items
+    ]
+    cache_set(key, data)
+    return data
 
 
 @app.get("/items/{item_id}", response_model=schemas.ItemResponse)
 def get_item(item_id: int, db: Session = Depends(get_db)):
+    key = f"items:{item_id}"
+    cached = cache_get(key)
+    if cached is not None:
+        return cached
+
     item = db.query(models.Item).filter(
         models.Item.id == item_id
     ).first()
@@ -45,7 +70,9 @@ def get_item(item_id: int, db: Session = Depends(get_db)):
     if item is None:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    return item
+    data = schemas.ItemResponse.model_validate(item, from_attributes=True).model_dump(mode="json")
+    cache_set(key, data)
+    return data
 
 
 @app.post(
@@ -85,6 +112,8 @@ def update_item(
     db.commit()
     db.refresh(db_item)
 
+    cache_delete(f"items:{item_id}")
+
     return db_item
 
 
@@ -99,6 +128,8 @@ def delete_item(item_id: int, db: Session = Depends(get_db)):
 
     db.delete(db_item)
     db.commit()
+
+    cache_delete(f"items:{item_id}")
 
     return {
         "message": "Item deleted successfully",
